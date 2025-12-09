@@ -1,10 +1,8 @@
-package catalog
+package handlers
 
 import (
 	"encoding/json"
 	"net/http"
-
-	"github.com/mytheresa/go-hiring-challenge/models"
 )
 
 type Response struct {
@@ -17,17 +15,17 @@ type Product struct {
 }
 
 type CatalogHandler struct {
-	repo *models.ProductsRepository
+	service CatalogService
 }
 
-func NewCatalogHandler(r *models.ProductsRepository) *CatalogHandler {
+func NewCatalogHandler(service CatalogService) *CatalogHandler {
 	return &CatalogHandler{
-		repo: r,
+		service: service,
 	}
 }
 
 func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
-	res, err := h.repo.GetAllProducts()
+	res, err := h.service.GetAllProducts()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
