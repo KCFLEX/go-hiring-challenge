@@ -1,8 +1,6 @@
 package models
 
 import (
-	"fmt"
-
 	"gorm.io/gorm"
 )
 
@@ -16,11 +14,28 @@ func NewProductsRepository(db *gorm.DB) *ProductsRepository {
 	}
 }
 
-func (r *ProductsRepository) GetAllProducts() ([]Product, error) {
-	var products []Product
-	if err := r.db.Preload("Variants").Preload("Category").Find(&products).Error; err != nil {
-		return nil, err
+func (r *ProductsRepository) GetAllProducts(filters *ProductFilter) ([]Product, int64, error) {
+	q := r.db.Model(&Product{})
+
+	if filters.CategoryCode != nil && *filters.CategoryCode != "" {
+		q = q.Joins("JOIN categories ON categories.id = products.category_id").
+		Where("categories.code = ?", *filters.CategoryCode)
 	}
-	fmt.Println(products)
-	return products, nil
+
+	if filters.PriceLt != nil {
+		q = q.Where("products.price < ?", *filters.PriceLt)
+	}
+
+	var total int64
+    if err := q.Count(&total).Error; err != nil {
+        return nil, 0, err
+    }
+
+	var products []Product
+    if err := q.Preload("Variants").Preload("Category").
+        Offset(filters.Offset).Limit(filters.Limit).
+        Find(&products).Error; err != nil {
+        return nil, 0, err
+    }
+	return products, total, nil
 }

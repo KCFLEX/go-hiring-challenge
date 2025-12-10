@@ -2,23 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+
+	"github.com/mytheresa/go-hiring-challenge/models"
+	"github.com/shopspring/decimal"
 )
-
-type Response struct {
-	Products []Product `json:"products"`
-}
-
-type Category struct {
-	Code string `json:"code"`
-	Name string `json:"name"`
-}
-
-type Product struct {
-	Code  string  `json:"code"`
-	Price float64 `json:"price"`
-	Category Category `json:"category"`
-}
 
 type CatalogHandler struct {
 	service CatalogService
@@ -31,7 +20,48 @@ func NewCatalogHandler(service CatalogService) *CatalogHandler {
 }
 
 func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
-	res, err := h.service.GetAllProducts()
+
+	offset, err := getQueryInt(r, "offset", 0)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	limit, err := getQueryInt(r, "limit", 10)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	if limit < 1 {
+		limit = 1
+	}
+
+	category := r.URL.Query().Get("category")
+	priceStr := r.URL.Query().Get("price_lt")
+
+	var priceLt *decimal.Decimal
+	if priceStr != "" {
+		price, err := decimal.NewFromString(priceStr)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			fmt.Println("Error parsing price: ", err)
+			return
+		}
+		priceLt = &price
+	}
+
+	filters := &models.ProductFilter{
+		Offset:       offset,
+		Limit:        limit,
+		CategoryCode: &category,
+		PriceLt: priceLt,
+	}
+
+	res, prodTotal, err := h.service.GetAllProducts(filters)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -55,6 +85,7 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 
 	response := Response{
 		Products: products,
+		Total:    prodTotal,
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
