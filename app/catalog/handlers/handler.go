@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
+	"github.com/mytheresa/go-hiring-challenge/app/api"
 	"github.com/mytheresa/go-hiring-challenge/models"
 	"github.com/shopspring/decimal"
 )
@@ -20,16 +20,15 @@ func NewCatalogHandler(service CatalogService) *CatalogHandler {
 }
 
 func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
-
 	offset, err := getQueryInt(r, "offset", 0)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		api.ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	limit, err := getQueryInt(r, "limit", 10)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		api.ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	if limit > 100 {
@@ -47,8 +46,7 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	if priceStr != "" {
 		price, err := decimal.NewFromString(priceStr)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			fmt.Println("Error parsing price: ", err)
+			api.ErrorResponse(w, http.StatusBadRequest, err.Error())
 			return
 		}
 		priceLt = &price
@@ -63,7 +61,7 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 
 	res, prodTotal, err := h.service.GetAllProducts(filters)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		api.ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -80,27 +78,19 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Return the products as a JSON response
-	w.Header().Set("Content-Type", "application/json")
-
 	response := Response{
 		Products: products,
 		Total:    prodTotal,
 	}
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	api.OKResponse(w, response)
 }
 
 func (h *CatalogHandler) HandleGetProdDetails(w http.ResponseWriter, r *http.Request) {
 	codeParam := r.PathValue("code")
 
-	// service method that get products details
 	product, err := h.service.GetProductDetails(codeParam)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		api.ErrorResponse(w, http.StatusInternalServerError, err.Error())
 	}
 
 	responseDTO := ProductDetailsResponse{
@@ -121,11 +111,7 @@ func (h *CatalogHandler) HandleGetProdDetails(w http.ResponseWriter, r *http.Req
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(responseDTO); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	api.OKResponse(w, responseDTO)
 
 }
 
@@ -133,6 +119,7 @@ func (h *CatalogHandler) HandleGetAllCategories(w http.ResponseWriter, r *http.R
 	categories, err := h.service.GetAllCategories()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		api.ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -144,18 +131,14 @@ func (h *CatalogHandler) HandleGetAllCategories(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	api.OKResponse(w, response)
 }
 
 func (h *CatalogHandler) HandleCreateNewCategory(w http.ResponseWriter, r *http.Request) {
 	// Implementation for creating a new category would go here
 	var category Category
 	if err := json.NewDecoder(r.Body).Decode(&category); err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		api.ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
