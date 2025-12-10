@@ -44,6 +44,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /catalog", cat.HandleGet)
 	mux.HandleFunc("GET /catalog/{code}", cat.HandleGetProdDetails)
+	mux.HandleFunc("GET /categories", cat.HandleGetAllCategories)
 
 	// Set up the HTTP server
 	srv := &http.Server{

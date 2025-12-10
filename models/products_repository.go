@@ -56,5 +56,14 @@ func (r *ProductsRepository) GetProductDetailsByCode(ProductCode string) (*Produ
 		}
 	}
 
-	return &product, nil 
+	return &product, nil
+}
+
+func (r *ProductsRepository) GetAllCategories() ([]Category, error) {
+	var categories []Category
+	err := r.db.Find(&categories).Error
+	if err != nil {
+		return nil, err
+	}
+	return categories, nil
 }

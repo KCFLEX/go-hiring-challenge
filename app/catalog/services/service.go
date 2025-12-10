@@ -24,6 +24,14 @@ func (s *CatalogService) GetProductDetails(ProductCode string) (*models.Product,
 		return &models.Product{}, err
 	}
 
-	return product, nil 
+	return product, nil
 }
 
+func (s *CatalogService) GetAllCategories() ([]models.Category, error) {
+	categories, err := s.productsRepo.GetAllCategories()
+	if err != nil {
+		return nil, err
+	}
+
+	return categories, nil
+}
