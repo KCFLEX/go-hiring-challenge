@@ -58,7 +58,7 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 		Offset:       offset,
 		Limit:        limit,
 		CategoryCode: &category,
-		PriceLt: priceLt,
+		PriceLt:      priceLt,
 	}
 
 	res, prodTotal, err := h.service.GetAllProducts(filters)
@@ -92,4 +92,39 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func (h *CatalogHandler) HandleGetProdDetails(w http.ResponseWriter, r *http.Request) {
+	codeParam := r.PathValue("code")
+
+	// service method that get products details
+	product, err := h.service.GetProductDetails(codeParam)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	responseDTO := ProductDetailsResponse{
+		Code:  product.Code,
+		Price: product.Price,
+		Category: Category{
+			Code: product.Category.Code,
+			Name: product.Category.Name,
+		},
+		Variant: make([]Variant, len(product.Variants)),
+	}
+
+	for i, v := range product.Variants {
+		responseDTO.Variant[i] = Variant{
+			Name:  v.Name,
+			SKU:   v.SKU,
+			Price: v.Price.InexactFloat64(),
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(responseDTO); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 }

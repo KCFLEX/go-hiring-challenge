@@ -17,3 +17,13 @@ func (s *CatalogService) GetAllProducts(filters *models.ProductFilter) ([]models
 	}
 	return products, total, nil
 }
+
+func (s *CatalogService) GetProductDetails(ProductCode string) (*models.Product, error) {
+	product, err := s.productsRepo.GetProductDetailsByCode(ProductCode)
+	if err != nil {
+		return &models.Product{}, err
+	}
+
+	return product, nil 
+}
+
