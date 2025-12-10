@@ -35,3 +35,11 @@ func (s *CatalogService) GetAllCategories() ([]models.Category, error) {
 
 	return categories, nil
 }
+
+func (s *CatalogService) CreateCategory(Category *models.Category) error {
+	err := s.productsRepo.CreateCategory(Category)
+	if err != nil {
+		return err
+	}
+	return nil
+}

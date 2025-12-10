@@ -6,4 +6,5 @@ type productsRepository interface {
 	GetAllProducts(filters *models.ProductFilter) ([]models.Product, int64, error)
 	GetProductDetailsByCode(ProductCode string) (*models.Product, error)
 	GetAllCategories() ([]models.Category, error)
+	CreateCategory(Category *models.Category) error
 }

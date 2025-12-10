@@ -67,3 +67,10 @@ func (r *ProductsRepository) GetAllCategories() ([]Category, error) {
 	}
 	return categories, nil
 }
+
+func (r *ProductsRepository) CreateCategory(Category *Category) error {
+	if err := r.db.Create(&Category).Error; err != nil {
+		return err
+	}
+	return nil
+}

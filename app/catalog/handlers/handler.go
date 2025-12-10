@@ -150,3 +150,25 @@ func (h *CatalogHandler) HandleGetAllCategories(w http.ResponseWriter, r *http.R
 		return
 	}
 }
+
+func (h *CatalogHandler) HandleCreateNewCategory(w http.ResponseWriter, r *http.Request) {
+	// Implementation for creating a new category would go here
+	var category Category
+	if err := json.NewDecoder(r.Body).Decode(&category); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	newCategory := &models.Category{
+		Code: category.Code,
+		Name: category.Name,
+	}
+
+	if err := h.service.CreateCategory(newCategory); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+}
