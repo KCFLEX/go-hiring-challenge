@@ -1,6 +1,8 @@
 package models
 
 import (
+	"context"
+
 	"gorm.io/gorm"
 )
 
@@ -14,8 +16,8 @@ func NewProductsRepository(db *gorm.DB) *ProductsRepository {
 	}
 }
 
-func (r *ProductsRepository) GetAllProducts(filters *ProductFilter) ([]Product, int64, error) {
-	q := r.db.Model(&Product{})
+func (r *ProductsRepository) GetAllProducts(ctx context.Context, filters *ProductFilter) ([]Product, int64, error) {
+	q := r.db.WithContext(ctx).Model(&Product{})
 
 	if filters.CategoryCode != nil && *filters.CategoryCode != "" {
 		q = q.Joins("JOIN categories ON categories.id = products.category_id").
@@ -40,9 +42,9 @@ func (r *ProductsRepository) GetAllProducts(filters *ProductFilter) ([]Product, 
 	return products, total, nil
 }
 
-func (r *ProductsRepository) GetProductDetailsByCode(ProductCode string) (*Product, error) {
+func (r *ProductsRepository) GetProductDetailsByCode(ctx context.Context, ProductCode string) (*Product, error) {
 	var product Product
-	err := r.db.Preload("Variants").
+	err := r.db.WithContext(ctx).Preload("Variants").
 		Preload("Category").
 		Where("code = ?", ProductCode).First(&product).Error
 
@@ -59,17 +61,17 @@ func (r *ProductsRepository) GetProductDetailsByCode(ProductCode string) (*Produ
 	return &product, nil
 }
 
-func (r *ProductsRepository) GetAllCategories() ([]Category, error) {
+func (r *ProductsRepository) GetAllCategories(ctx context.Context) ([]Category, error) {
 	var categories []Category
-	err := r.db.Find(&categories).Error
+	err := r.db.WithContext(ctx).Find(&categories).Error
 	if err != nil {
 		return nil, err
 	}
 	return categories, nil
 }
 
-func (r *ProductsRepository) CreateCategory(Category *Category) error {
-	if err := r.db.Create(&Category).Error; err != nil {
+func (r *ProductsRepository) CreateCategory(ctx context.Context, Category *Category) error {
+	if err := r.db.WithContext(ctx).Create(&Category).Error; err != nil {
 		return err
 	}
 	return nil

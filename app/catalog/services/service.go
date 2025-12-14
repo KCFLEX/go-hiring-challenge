@@ -1,6 +1,10 @@
 package services
 
-import "github.com/mytheresa/go-hiring-challenge/models"
+import (
+	"context"
+
+	"github.com/mytheresa/go-hiring-challenge/models"
+)
 
 type CatalogService struct {
 	productsRepo productsRepository
@@ -10,16 +14,16 @@ func NewCatalogService(productsRepo productsRepository) *CatalogService {
 	return &CatalogService{productsRepo: productsRepo}
 }
 
-func (s *CatalogService) GetAllProducts(filters *models.ProductFilter) ([]models.Product, int64, error) {
-	products, total, err := s.productsRepo.GetAllProducts(filters)
+func (s *CatalogService) GetAllProducts(ctx context.Context, filters *models.ProductFilter) ([]models.Product, int64, error) {
+	products, total, err := s.productsRepo.GetAllProducts(ctx, filters)
 	if err != nil {
 		return nil, 0, err
 	}
 	return products, total, nil
 }
 
-func (s *CatalogService) GetProductDetails(ProductCode string) (*models.Product, error) {
-	product, err := s.productsRepo.GetProductDetailsByCode(ProductCode)
+func (s *CatalogService) GetProductDetails(ctx context.Context, ProductCode string) (*models.Product, error) {
+	product, err := s.productsRepo.GetProductDetailsByCode(ctx, ProductCode)
 	if err != nil {
 		return &models.Product{}, err
 	}
@@ -27,8 +31,8 @@ func (s *CatalogService) GetProductDetails(ProductCode string) (*models.Product,
 	return product, nil
 }
 
-func (s *CatalogService) GetAllCategories() ([]models.Category, error) {
-	categories, err := s.productsRepo.GetAllCategories()
+func (s *CatalogService) GetAllCategories(ctx context.Context) ([]models.Category, error) {
+	categories, err := s.productsRepo.GetAllCategories(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -36,8 +40,8 @@ func (s *CatalogService) GetAllCategories() ([]models.Category, error) {
 	return categories, nil
 }
 
-func (s *CatalogService) CreateCategory(Category *models.Category) error {
-	err := s.productsRepo.CreateCategory(Category)
+func (s *CatalogService) CreateCategory(ctx context.Context, Category *models.Category) error {
+	err := s.productsRepo.CreateCategory(ctx, Category)
 	if err != nil {
 		return err
 	}

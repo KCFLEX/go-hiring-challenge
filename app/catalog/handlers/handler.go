@@ -20,6 +20,7 @@ func NewCatalogHandler(service CatalogService) *CatalogHandler {
 }
 
 func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	offset, err := getQueryInt(r, "offset", 0)
 	if err != nil {
 		api.ErrorResponse(w, http.StatusBadRequest, err.Error())
@@ -59,7 +60,7 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 		PriceLt:      priceLt,
 	}
 
-	res, prodTotal, err := h.service.GetAllProducts(filters)
+	res, prodTotal, err := h.service.GetAllProducts(ctx, filters)
 	if err != nil {
 		api.ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -86,9 +87,10 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *CatalogHandler) HandleGetProdDetails(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	codeParam := r.PathValue("code")
 
-	product, err := h.service.GetProductDetails(codeParam)
+	product, err := h.service.GetProductDetails(ctx, codeParam)
 	if err != nil {
 		api.ErrorResponse(w, http.StatusInternalServerError, err.Error())
 	}
@@ -116,7 +118,8 @@ func (h *CatalogHandler) HandleGetProdDetails(w http.ResponseWriter, r *http.Req
 }
 
 func (h *CatalogHandler) HandleGetAllCategories(w http.ResponseWriter, r *http.Request) {
-	categories, err := h.service.GetAllCategories()
+	ctx := r.Context()
+	categories, err := h.service.GetAllCategories(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		api.ErrorResponse(w, http.StatusInternalServerError, err.Error())
@@ -135,7 +138,7 @@ func (h *CatalogHandler) HandleGetAllCategories(w http.ResponseWriter, r *http.R
 }
 
 func (h *CatalogHandler) HandleCreateNewCategory(w http.ResponseWriter, r *http.Request) {
-	// Implementation for creating a new category would go here
+	ctx := r.Context()
 	var category Category
 	if err := json.NewDecoder(r.Body).Decode(&category); err != nil {
 		api.ErrorResponse(w, http.StatusBadRequest, err.Error())
@@ -147,7 +150,7 @@ func (h *CatalogHandler) HandleCreateNewCategory(w http.ResponseWriter, r *http.
 		Name: category.Name,
 	}
 
-	if err := h.service.CreateCategory(newCategory); err != nil {
+	if err := h.service.CreateCategory(ctx, newCategory); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
