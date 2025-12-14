@@ -2,9 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
+	"log"
 	"net/http"
 
 	"github.com/mytheresa/go-hiring-challenge/app/api"
+	"github.com/mytheresa/go-hiring-challenge/app/catalog/services"
 	"github.com/mytheresa/go-hiring-challenge/models"
 	"github.com/shopspring/decimal"
 )
@@ -27,6 +30,11 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if offset < 0 {
+		api.ErrorResponse(w, http.StatusBadRequest, "offset must be >= 0")
+		return
+	}
+
 	limit, err := getQueryInt(r, "limit", 10)
 	if err != nil {
 		api.ErrorResponse(w, http.StatusBadRequest, err.Error())
@@ -41,8 +49,11 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	category := r.URL.Query().Get("category")
+	var categoryCode *string
+	if category != "" {
+		categoryCode = &category
+	}
 	priceStr := r.URL.Query().Get("price_lt")
-
 	var priceLt *decimal.Decimal
 	if priceStr != "" {
 		price, err := decimal.NewFromString(priceStr)
@@ -56,13 +67,23 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	filters := &models.ProductFilter{
 		Offset:       offset,
 		Limit:        limit,
-		CategoryCode: &category,
+		CategoryCode: categoryCode,
 		PriceLt:      priceLt,
 	}
 
 	res, prodTotal, err := h.service.GetAllProducts(ctx, filters)
 	if err != nil {
-		api.ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		log.Printf("GET /catalog failed: %v", err)
+
+		switch {
+		case errors.Is(err, services.ErrNoProducts):
+			api.OKResponse(w, Response{
+				Products: []Product{},
+				Total:    0,
+			})
+		default:
+			api.ErrorResponse(w, http.StatusInternalServerError, "internal server error")
+		}
 		return
 	}
 
@@ -90,9 +111,20 @@ func (h *CatalogHandler) HandleGetProdDetails(w http.ResponseWriter, r *http.Req
 	ctx := r.Context()
 	codeParam := r.PathValue("code")
 
+	if codeParam == "" {
+		api.ErrorResponse(w, http.StatusBadRequest, "product code is required")
+		return
+	}
+
 	product, err := h.service.GetProductDetails(ctx, codeParam)
 	if err != nil {
-		api.ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		if errors.Is(err, services.ErrProductNotFound) {
+			api.ErrorResponse(w, http.StatusNotFound, "product not found")
+			return
+		}
+		log.Printf("[GET /catalog/%s] failed: %v", codeParam, err)
+		api.ErrorResponse(w, http.StatusInternalServerError, "internal server error")
+		return
 	}
 
 	responseDTO := ProductDetailsResponse{
@@ -121,9 +153,13 @@ func (h *CatalogHandler) HandleGetAllCategories(w http.ResponseWriter, r *http.R
 	ctx := r.Context()
 	categories, err := h.service.GetAllCategories(ctx)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		api.ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		log.Printf("[GET /categories] failed: %v", err)
+		api.ErrorResponse(w, http.StatusInternalServerError, "internal server error")
 		return
+	}
+
+	if categories == nil {
+		categories = []models.Category{}
 	}
 
 	response := make([]Category, len(categories))
@@ -139,9 +175,16 @@ func (h *CatalogHandler) HandleGetAllCategories(w http.ResponseWriter, r *http.R
 
 func (h *CatalogHandler) HandleCreateNewCategory(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	defer r.Body.Close()
 	var category Category
 	if err := json.NewDecoder(r.Body).Decode(&category); err != nil {
-		api.ErrorResponse(w, http.StatusBadRequest, err.Error())
+		log.Printf("[POST /categories] JSON decode failed: %v", err)
+		api.ErrorResponse(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if category.Code == "" || category.Name == "" {
+		api.ErrorResponse(w, http.StatusBadRequest, "code and name are required")
 		return
 	}
 
@@ -151,10 +194,12 @@ func (h *CatalogHandler) HandleCreateNewCategory(w http.ResponseWriter, r *http.
 	}
 
 	if err := h.service.CreateCategory(ctx, newCategory); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("[POST /categories] failed to create category: %v", err)
+		api.ErrorResponse(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	api.OKResponse(w, map[string]string{
+		"message": "category created",
+	})
 }

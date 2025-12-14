@@ -2,9 +2,15 @@ package services
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/mytheresa/go-hiring-challenge/models"
+	"gorm.io/gorm"
 )
+
+var ErrProductNotFound = errors.New("product not found")
+var ErrNoProducts = errors.New("no products found")
 
 type CatalogService struct {
 	productsRepo productsRepository
@@ -19,13 +25,21 @@ func (s *CatalogService) GetAllProducts(ctx context.Context, filters *models.Pro
 	if err != nil {
 		return nil, 0, err
 	}
+
+	if len(products) == 0 {
+		return nil, 0, ErrNoProducts
+	}
+
 	return products, total, nil
 }
 
 func (s *CatalogService) GetProductDetails(ctx context.Context, ProductCode string) (*models.Product, error) {
 	product, err := s.productsRepo.GetProductDetailsByCode(ctx, ProductCode)
 	if err != nil {
-		return &models.Product{}, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("product %s not found: %w", ProductCode, ErrProductNotFound)
+		}
+		return nil, fmt.Errorf("failed to get product %s: %w", ProductCode, err)
 	}
 
 	return product, nil
@@ -34,7 +48,7 @@ func (s *CatalogService) GetProductDetails(ctx context.Context, ProductCode stri
 func (s *CatalogService) GetAllCategories(ctx context.Context) ([]models.Category, error) {
 	categories, err := s.productsRepo.GetAllCategories(ctx)
 	if err != nil {
-		return nil, err
+		 return nil, fmt.Errorf("get all categories failed: %w", err)
 	}
 
 	return categories, nil
@@ -43,7 +57,7 @@ func (s *CatalogService) GetAllCategories(ctx context.Context) ([]models.Categor
 func (s *CatalogService) CreateCategory(ctx context.Context, Category *models.Category) error {
 	err := s.productsRepo.CreateCategory(ctx, Category)
 	if err != nil {
-		return err
+		return fmt.Errorf("create category failed: %w", err)
 	}
 	return nil
 }
