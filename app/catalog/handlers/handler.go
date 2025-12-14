@@ -22,6 +22,9 @@ func NewCatalogHandler(service CatalogService) *CatalogHandler {
 	}
 }
 
+// HandleGet handles HTTP GET requests for retrieving products with optional filters and pagination.
+// Example request:
+//   GET /catalog?offset=2&limit=10&category=SHOES&price_lt=200
 func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	offset, err := getQueryInt(r, "offset", 0)
@@ -74,7 +77,6 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	res, prodTotal, err := h.service.GetAllProducts(ctx, filters)
 	if err != nil {
 		log.Printf("GET /catalog failed: %v", err)
-
 		switch {
 		case errors.Is(err, services.ErrNoProducts):
 			api.OKResponse(w, Response{
@@ -87,7 +89,7 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Map response
+	
 	products := make([]Product, len(res))
 	for i, p := range res {
 		products[i] = Product{
@@ -107,6 +109,10 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	api.OKResponse(w, response)
 }
 
+// HandleGetProdDetails handles HTTP GET requests for retrieving the details of a single product
+// identified by its product code.
+// Example request:
+//   GET /catalog/P1
 func (h *CatalogHandler) HandleGetProdDetails(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	codeParam := r.PathValue("code")
@@ -149,6 +155,10 @@ func (h *CatalogHandler) HandleGetProdDetails(w http.ResponseWriter, r *http.Req
 
 }
 
+// HandleGetAllCategories handles HTTP GET requests to retrieve all product categories.
+//
+// Example Request:
+//   GET /categories
 func (h *CatalogHandler) HandleGetAllCategories(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	categories, err := h.service.GetAllCategories(ctx)
@@ -173,6 +183,11 @@ func (h *CatalogHandler) HandleGetAllCategories(w http.ResponseWriter, r *http.R
 	api.OKResponse(w, response)
 }
 
+// HandleCreateNewCategory handles HTTP POST requests for creating a new product category.
+// Example request:
+//   POST /categories
+//   Content-Type: application/json
+//   Body: {"code":"C1","name":"Shoes"}
 func (h *CatalogHandler) HandleCreateNewCategory(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	defer r.Body.Close()
