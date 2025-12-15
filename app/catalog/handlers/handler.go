@@ -23,8 +23,13 @@ func NewCatalogHandler(service CatalogService) *CatalogHandler {
 }
 
 // HandleGet handles HTTP GET requests for retrieving products with optional filters and pagination.
+// Query Parameters:
+//   - offset (optional, int, default: 0): Number of products to skip before returning results. Must be >= 0.
+//   - limit (optional, int, default: 10): Maximum number of products to return. Minimum 1, maximum 100.
+//   - category (optional, string): Filter products by category code.
+//   - price_lt (optional, string/decimal): Filter products with price less than the specified value.
 // Example request:
-//   GET /catalog?offset=2&limit=10&category=SHOES&price_lt=200
+//   GET /catalog?offset=2&limit=10&category=CAT001&price_lt=200
 func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	offset, err := getQueryInt(r, "offset", 0)
